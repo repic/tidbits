@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg height="400" onload="init(evt)" width="700" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">	<script type="text/ecmascript"><![CDATA[
+		var SVGDoc; var SVGRoot;
+		function init(evt) {
+			SVGDoc = evt.getTarget().getOwnerDocument();
+			SVGRoot = SVGDoc.getDocumentElement();
+		}]]>
+	</script>	<script type="text/ecmascript"><![CDATA[
+	var svgns = "http://www.w3.org/2000/svg";
+	var tracking;
+	var x_offset = 0; var y_offset = 0; // how far off the mouse was from a group's coordinates
+	var global_mouse_x; var global_mouse_y; // for seeing if the mouse moved
+	
+	function toggle_item_opacity(id,op1,op2) {
+		if (SVGDoc.getElementById(id) != null) {
+			var item = SVGDoc.getElementById(id);
+			var new_op = (parseFloat(item.getAttributeNS(null, 'opacity')) == op1) ? op2 : op1;
+			item.setAttributeNS(null, 'opacity',new_op.toString());
+		}
+	}
+	function showSaver(op) {
+		if (SVGDoc.getElementById('Saver') != null) {
+			var theSaver = SVGDoc.getElementById('Saver');
+			theSaver.setAttributeNS(null, 'opacity',op);
+		}
+	}
+	function trackGroup(evt,id,onoff){
+		tracking = onoff;
+		if (onoff) {
+			findGroupClickOffset(evt,id);
+			showSaver(1);
+		}
+	}
+	function findGroupClickOffset(evt,name_of_group) {
+		var theClickedThing = SVGDoc.getElementById(name_of_group);
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		var mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		var mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+		var group_coords = findGroupCoordinates(name_of_group);
+		x_offset = mouse_x - group_coords.x; // global variable
+		y_offset = mouse_y - group_coords.y; // global variable
+	}
+	function findGroupCoordinates(name_of_group) {
+		var theGroup = SVGDoc.getElementById(name_of_group);
+		var old_transform = theGroup.getAttributeNS(null, 'transform'); 
+		var regex = /([0-9e.-]+),([0-9e.-]+)/;
+		var numbers = regex.exec(old_transform);
+		var group_x = eval(numbers[1]) + parseFloat(theGroup.getAttributeNS(null, 'x'));
+		var group_y = eval(numbers[2]) + parseFloat(theGroup.getAttributeNS(null, 'y'));
+		return { x: group_x, y: group_y };
+	}
+	function moveGroup(evt,name_of_group) {
+		if (tracking) {
+			var theGroup = SVGDoc.getElementById(name_of_group);
+			// Find out where the mouse is, and use x and y offset values
+			var scale = SVGRoot.getCurrentScale();
+			var pan = SVGRoot.getCurrentTranslate();
+			var new_x = evt.getClientX()/scale + (( 0.0 - pan.x ) / scale) - x_offset;
+			var new_y = evt.getClientY()/scale + (( 0.0 - pan.y ) / scale) - y_offset;
+			// Calculate new translation based on difference between mouse position and origin
+			var new_x_transform = new_x - parseFloat(theGroup.getAttributeNS(null, 'x'));
+			var new_y_transform = new_y - parseFloat(theGroup.getAttributeNS(null, 'y'));
+			// Plug new translation values into old transform attribute
+			var old_transform = theGroup.getAttributeNS(null, 'transform');
+			var regex = /([0-9e.-]+),([0-9e.-]+)/;
+			var new_transform = old_transform.replace(regex,new_x_transform+','+new_y_transform);
+			theGroup.setAttributeNS(null, 'transform',new_transform);
+		}
+	}
+	var original_stroke_color = new Object;
+	var original_stroke_width = new Object;
+	function highlight(name_of_thing,onoff) {
+		var highlight_color = '#0000FF';
+		var highlight_width = '1';
+		var theThing = SVGDoc.getElementById(name_of_thing);
+		if (onoff) {
+			original_stroke_color[name_of_thing] = theThing.getAttributeNS(null, 'stroke');
+			original_stroke_width[name_of_thing] = theThing.getAttributeNS(null, 'stroke-width');
+			theThing.setAttributeNS(null, 'stroke',highlight_color);
+			theThing.setAttributeNS(null, 'stroke-width',highlight_width);
+		} else {
+			theThing.setAttributeNS(null, 'stroke',original_stroke_color[name_of_thing]);
+			theThing.setAttributeNS(null, 'stroke-width',original_stroke_width[name_of_thing]);
+		}
+	}
+	]]>
+	</script>	<script type="text/ecmascript"><![CDATA[
+	function toggle_track_opacity(id,track_op,label_op) {
+		toggle_item_opacity(id+' track',track_op,1);
+		toggle_item_opacity(id+' label',label_op,1);
+	}
+	function toggle_track_opacity_from_legend(id,legend_id,track_op,label_op) {
+		toggle_item_opacity(id+' track',track_op,1);
+		toggle_item_opacity(id+' label',label_op,1);
+		toggle_item_opacity(legend_id,label_op,1);
+	}
+	function trackLabelMouseDown(evt,id) {
+		tracking = 1;
+		showSaver(1);
+		findGroupClickOffset(evt,id+' label');
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		global_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		global_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+	}
+	function trackLabelMouseUp(evt,id) {
+		tracking = 0;
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		var current_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		var current_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+		if (current_mouse_x == global_mouse_x && current_mouse_y == global_mouse_y) {
+			toggle_track_opacity(id,0,0.25);
+		}
+	}
+	]]>
+	</script>
+	<g id="altitude y gridlines">
+		<line fill="none" id="altitude y line 0" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="325" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 0" text-anchor="end" x="73" y="329">287.7 m
+		</text>
+		<line fill="none" id="altitude y line 1" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="320" y2="320" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 1" text-anchor="end" x="73" y="324">288 m
+		</text>
+		<line fill="none" id="altitude y line 2" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="293" y2="293" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 2" text-anchor="end" x="73" y="297">290 m
+		</text>
+		<line fill="none" id="altitude y line 3" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="265" y2="265" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 3" text-anchor="end" x="73" y="269">292 m
+		</text>
+		<line fill="none" id="altitude y line 4" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="237" y2="237" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 4" text-anchor="end" x="73" y="241">294 m
+		</text>
+		<line fill="none" id="altitude y line 5" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="209" y2="209" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 5" text-anchor="end" x="73" y="213">296 m
+		</text>
+		<line fill="none" id="altitude y line 6" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="181" y2="181" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 6" text-anchor="end" x="73" y="185">298 m
+		</text>
+		<line fill="none" id="altitude y line 7" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="154" y2="154" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 7" text-anchor="end" x="73" y="158">300 m
+		</text>
+		<line fill="none" id="altitude y line 8" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="126" y2="126" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 8" text-anchor="end" x="73" y="130">302 m
+		</text>
+		<line fill="none" id="altitude y line 9" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="98" y2="98" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 9" text-anchor="end" x="73" y="102">304 m
+		</text>
+		<line fill="none" id="altitude y line 10" stroke="#CCCCCC" stroke-width="0.5" x1="75" x2="625" y1="75" y2="75" />		<text fill="#000000" font-family="Verdana" font-size="10" id="altitude y label 10" text-anchor="end" x="73" y="79">305.7 m
+		</text>
+	</g>
+	<g id="distance x gridlines">
+		<line fill="none" id="distance x line 0" stroke="#CCCCCC" stroke-width="0.5" x1="75.5" x2="75.5" y1="75" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="distance x label 0" text-anchor="end" transform="translate(80.5,328.333333333333) rotate(-90) translate(-80.5,-328.333333333333)" x="80.5" y="328.333333333333">0 km
+		</text>
+		<line fill="none" id="distance x line 1" stroke="#CCCCCC" stroke-width="0.5" x1="179.602325942862" x2="179.602325942862" y1="75" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="distance x label 1" text-anchor="end" transform="translate(184.602325942862,328.333333333333) rotate(-90) translate(-184.602325942862,-328.333333333333)" x="184.602325942862" y="328.333333333333">2 km
+		</text>
+		<line fill="none" id="distance x line 2" stroke="#CCCCCC" stroke-width="0.5" x1="283.704651885724" x2="283.704651885724" y1="75" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="distance x label 2" text-anchor="end" transform="translate(288.704651885724,328.333333333333) rotate(-90) translate(-288.704651885724,-328.333333333333)" x="288.704651885724" y="328.333333333333">4 km
+		</text>
+		<line fill="none" id="distance x line 3" stroke="#CCCCCC" stroke-width="0.5" x1="387.806977828586" x2="387.806977828586" y1="75" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="distance x label 3" text-anchor="end" transform="translate(392.806977828586,328.333333333333) rotate(-90) translate(-392.806977828586,-328.333333333333)" x="392.806977828586" y="328.333333333333">6 km
+		</text>
+		<line fill="none" id="distance x line 4" stroke="#CCCCCC" stroke-width="0.5" x1="491.909303771448" x2="491.909303771448" y1="75" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="distance x label 4" text-anchor="end" transform="translate(496.909303771448,328.333333333333) rotate(-90) translate(-496.909303771448,-328.333333333333)" x="496.909303771448" y="328.333333333333">8 km
+		</text>
+		<line fill="none" id="distance x line 5" stroke="#CCCCCC" stroke-width="0.5" x1="596.01162971431" x2="596.01162971431" y1="75" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="distance x label 5" text-anchor="end" transform="translate(601.01162971431,328.333333333333) rotate(-90) translate(-601.01162971431,-328.333333333333)" x="601.01162971431" y="328.333333333333">10 km
+		</text>
+		<line fill="none" id="distance x line 6" stroke="#CCCCCC" stroke-width="0.5" x1="625.5" x2="625.5" y1="75" y2="325" />		<text fill="#000000" font-family="Verdana" font-size="10" id="distance x label 6" text-anchor="end" transform="translate(630.5,328.333333333333) rotate(-90) translate(-630.5,-328.333333333333)" x="630.5" y="328.333333333333">10.5665 km
+		</text>
+	</g>
+	<g id="Route (5.3 km / 11 mins) (t1) track" opacity="1">
+		<line fill="none" id="t1 p1" stroke="#00E63F" stroke-width="2" x1="75.0000" x2="75.7612" y1="211.1111" y2="213.8889" />
+		<line fill="none" id="t1 p2" stroke="#00E632" stroke-width="2" x1="75.7612" x2="77.9668" y1="213.8889" y2="209.7222" />
+		<line fill="none" id="t1 p3" stroke="#00E648" stroke-width="2" x1="77.9668" x2="77.9668" y1="209.7222" y2="209.7222" />
+		<line fill="none" id="t1 p4" stroke="#00E648" stroke-width="2" x1="77.9668" x2="81.6733" y1="209.7222" y2="219.4444" />
+		<line fill="none" id="t1 p5" stroke="#00E61B" stroke-width="2" x1="81.6733" x2="81.6733" y1="219.4444" y2="219.4444" />
+		<line fill="none" id="t1 p6" stroke="#00E61B" stroke-width="2" x1="81.6733" x2="83.8894" y1="219.4444" y2="230.5556" />
+		<line fill="none" id="t1 p7" stroke="#1BE600" stroke-width="2" x1="83.8894" x2="85.1845" y1="230.5556" y2="233.3333" />
+		<line fill="none" id="t1 p8" stroke="#24E600" stroke-width="2" x1="85.1845" x2="99.7094" y1="233.3333" y2="198.6111" />
+		<line fill="none" id="t1 p9" stroke="#00E679" stroke-width="2" x1="99.7094" x2="110.8768" y1="198.6111" y2="218.0556" />
+		<line fill="none" id="t1 p10" stroke="#00E61F" stroke-width="2" x1="110.8768" x2="113.8143" y1="218.0556" y2="204.1667" />
+		<line fill="none" id="t1 p11" stroke="#00E65F" stroke-width="2" x1="113.8143" x2="118.2350" y1="204.1667" y2="215.2778" />
+		<line fill="none" id="t1 p12" stroke="#00E62D" stroke-width="2" x1="118.2350" x2="131.1307" y1="215.2778" y2="219.4444" />
+		<line fill="none" id="t1 p13" stroke="#00E61B" stroke-width="2" x1="131.1307" x2="131.1307" y1="219.4444" y2="219.4444" />
+		<line fill="none" id="t1 p14" stroke="#00E61B" stroke-width="2" x1="131.1307" x2="134.8925" y1="219.4444" y2="218.0556" />
+		<line fill="none" id="t1 p15" stroke="#00E61F" stroke-width="2" x1="134.8925" x2="134.8925" y1="218.0556" y2="218.0556" />
+		<line fill="none" id="t1 p16" stroke="#00E61F" stroke-width="2" x1="134.8925" x2="138.1607" y1="218.0556" y2="218.0556" />
+		<line fill="none" id="t1 p17" stroke="#00E61F" stroke-width="2" x1="138.1607" x2="138.1607" y1="218.0556" y2="218.0556" />
+		<line fill="none" id="t1 p18" stroke="#00E61F" stroke-width="2" x1="138.1607" x2="151.0225" y1="218.0556" y2="211.1111" />
+		<line fill="none" id="t1 p19" stroke="#00E63F" stroke-width="2" x1="151.0225" x2="158.7813" y1="211.1111" y2="215.2778" />
+		<line fill="none" id="t1 p20" stroke="#00E62D" stroke-width="2" x1="158.7813" x2="169.5101" y1="215.2778" y2="200.0000" />
+		<line fill="none" id="t1 p21" stroke="#00E675" stroke-width="2" x1="169.5101" x2="203.4411" y1="200.0000" y2="213.8889" />
+		<line fill="none" id="t1 p22" stroke="#00E632" stroke-width="2" x1="203.4411" x2="210.5670" y1="213.8889" y2="215.2778" />
+		<line fill="none" id="t1 p23" stroke="#00E62D" stroke-width="2" x1="210.5670" x2="231.2102" y1="215.2778" y2="158.3333" />
+		<line fill="none" id="t1 p24" stroke="#0099E6" stroke-width="2" x1="231.2102" x2="232.0485" y1="158.3333" y2="155.5556" />
+		<line fill="none" id="t1 p25" stroke="#008BE6" stroke-width="2" x1="232.0485" x2="232.0485" y1="155.5556" y2="155.5556" />
+		<line fill="none" id="t1 p26" stroke="#008BE6" stroke-width="2" x1="232.0485" x2="234.0225" y1="155.5556" y2="148.6111" />
+		<line fill="none" id="t1 p27" stroke="#006CE6" stroke-width="2" x1="234.0225" x2="236.3619" y1="148.6111" y2="162.5000" />
+		<line fill="none" id="t1 p28" stroke="#00ABE6" stroke-width="2" x1="236.3619" x2="243.4399" y1="162.5000" y2="113.8889" />
+		<line fill="none" id="t1 p29" stroke="#3200E6" stroke-width="2" x1="243.4399" x2="256.5274" y1="113.8889" y2="131.9444" />
+		<line fill="none" id="t1 p30" stroke="#001FE6" stroke-width="2" x1="256.5274" x2="256.5274" y1="131.9444" y2="131.9444" />
+		<line fill="none" id="t1 p31" stroke="#001FE6" stroke-width="2" x1="256.5274" x2="262.8890" y1="131.9444" y2="168.0556" />
+		<line fill="none" id="t1 p32" stroke="#00C6E6" stroke-width="2" x1="262.8890" x2="271.4844" y1="168.0556" y2="190.2778" />
+		<line fill="none" id="t1 p33" stroke="#00E69E" stroke-width="2" x1="271.4844" x2="276.8023" y1="190.2778" y2="256.9444" />
+		<line fill="none" id="t1 p34" stroke="#94E600" stroke-width="2" x1="276.8023" x2="279.2306" y1="256.9444" y2="227.7778" />
+		<line fill="none" id="t1 p35" stroke="#0DE600" stroke-width="2" x1="279.2306" x2="279.2306" y1="227.7778" y2="227.7778" />
+		<line fill="none" id="t1 p36" stroke="#0DE600" stroke-width="2" x1="279.2306" x2="284.4012" y1="227.7778" y2="190.2778" />
+		<line fill="none" id="t1 p37" stroke="#00E69E" stroke-width="2" x1="284.4012" x2="285.5833" y1="190.2778" y2="186.1111" />
+		<line fill="none" id="t1 p38" stroke="#00E6B4" stroke-width="2" x1="285.5833" x2="293.1878" y1="186.1111" y2="158.3333" />
+		<line fill="none" id="t1 p39" stroke="#0099E6" stroke-width="2" x1="293.1878" x2="304.2765" y1="158.3333" y2="75.0000" />
+		<line fill="none" id="t1 p40" stroke="#E600E6" stroke-width="2" x1="304.2765" x2="308.7492" y1="75.0000" y2="79.1667" />
+		<line fill="none" id="t1 p41" stroke="#D400E6" stroke-width="2" x1="308.7492" x2="312.2579" y1="79.1667" y2="126.3889" />
+		<line fill="none" id="t1 p42" stroke="#0004E6" stroke-width="2" x1="312.2579" x2="312.2579" y1="126.3889" y2="126.3889" />
+		<line fill="none" id="t1 p43" stroke="#0004E6" stroke-width="2" x1="312.2579" x2="318.4900" y1="126.3889" y2="116.6667" />
+		<line fill="none" id="t1 p44" stroke="#2900E6" stroke-width="2" x1="318.4900" x2="327.6565" y1="116.6667" y2="213.8889" />
+		<line fill="none" id="t1 p45" stroke="#00E632" stroke-width="2" x1="327.6565" x2="332.0303" y1="213.8889" y2="195.8333" />
+		<line fill="none" id="t1 p46" stroke="#00E687" stroke-width="2" x1="332.0303" x2="332.0303" y1="195.8333" y2="195.8333" />
+		<line fill="none" id="t1 p47" stroke="#00E687" stroke-width="2" x1="332.0303" x2="341.5243" y1="195.8333" y2="129.1667" />
+		<line fill="none" id="t1 p48" stroke="#0012E6" stroke-width="2" x1="341.5243" x2="348.7016" y1="129.1667" y2="151.3889" />
+		<line fill="none" id="t1 p49" stroke="#0079E6" stroke-width="2" x1="348.7016" x2="348.7016" y1="151.3889" y2="151.3889" />
+		<line fill="none" id="t1 p50" stroke="#0079E6" stroke-width="2" x1="348.7016" x2="353.0837" y1="151.3889" y2="202.7778" />
+	</g>
+	<line fill="none" id="Route (5.3 km / 11 mins) (t1) separator" opacity="0.75" stroke="#FF0000" stroke-width="1" x1="353.0837" x2="353.0837" y1="75" y2="325" />
+	<g id="Gorki&#196;&#141;eva ulica 18, 1000 Ljubljana, Slovenia (5.2 km / 13 mins) (t2) track" opacity="1">
+		<line fill="none" id="t2 p1" stroke="#00E668" stroke-width="2" x1="353.0837" x2="357.4658" y1="202.7778" y2="151.3889" />
+		<line fill="none" id="t2 p2" stroke="#0079E6" stroke-width="2" x1="357.4658" x2="357.4658" y1="151.3889" y2="151.3889" />
+		<line fill="none" id="t2 p3" stroke="#0079E6" stroke-width="2" x1="357.4658" x2="364.6431" y1="151.3889" y2="129.1667" />
+		<line fill="none" id="t2 p4" stroke="#0012E6" stroke-width="2" x1="364.6431" x2="373.7370" y1="129.1667" y2="191.6667" />
+		<line fill="none" id="t2 p5" stroke="#00E699" stroke-width="2" x1="373.7370" x2="373.7370" y1="191.6667" y2="191.6667" />
+		<line fill="none" id="t2 p6" stroke="#00E699" stroke-width="2" x1="373.7370" x2="377.9736" y1="191.6667" y2="201.3889" />
+		<line fill="none" id="t2 p7" stroke="#00E66C" stroke-width="2" x1="377.9736" x2="386.5772" y1="201.3889" y2="93.0556" />
+		<line fill="none" id="t2 p8" stroke="#9500E6" stroke-width="2" x1="386.5772" x2="393.5883" y1="93.0556" y2="108.3333" />
+		<line fill="none" id="t2 p9" stroke="#4D00E6" stroke-width="2" x1="393.5883" x2="393.5883" y1="108.3333" y2="108.3333" />
+		<line fill="none" id="t2 p10" stroke="#4D00E6" stroke-width="2" x1="393.5883" x2="397.3189" y1="108.3333" y2="209.7222" />
+		<line fill="none" id="t2 p11" stroke="#00E648" stroke-width="2" x1="397.3189" x2="400.0280" y1="209.7222" y2="220.8333" />
+		<line fill="none" id="t2 p12" stroke="#00E612" stroke-width="2" x1="400.0280" x2="402.4023" y1="220.8333" y2="208.3333" />
+		<line fill="none" id="t2 p13" stroke="#00E64D" stroke-width="2" x1="402.4023" x2="407.4518" y1="208.3333" y2="116.6667" />
+		<line fill="none" id="t2 p14" stroke="#2900E6" stroke-width="2" x1="407.4518" x2="407.4518" y1="116.6667" y2="116.6667" />
+		<line fill="none" id="t2 p15" stroke="#2900E6" stroke-width="2" x1="407.4518" x2="414.4879" y1="116.6667" y2="109.7222" />
+		<line fill="none" id="t2 p16" stroke="#4800E6" stroke-width="2" x1="414.4879" x2="421.6351" y1="109.7222" y2="165.2778" />
+		<line fill="none" id="t2 p17" stroke="#00B8E6" stroke-width="2" x1="421.6351" x2="421.6351" y1="165.2778" y2="165.2778" />
+		<line fill="none" id="t2 p18" stroke="#00B8E6" stroke-width="2" x1="421.6351" x2="426.9158" y1="165.2778" y2="261.1111" />
+		<line fill="none" id="t2 p19" stroke="#A7E600" stroke-width="2" x1="426.9158" x2="438.4116" y1="261.1111" y2="297.2222" />
+		<line fill="none" id="t2 p20" stroke="#E67E00" stroke-width="2" x1="438.4116" x2="440.1445" y1="297.2222" y2="301.3889" />
+		<line fill="none" id="t2 p21" stroke="#E66C00" stroke-width="2" x1="440.1445" x2="442.7738" y1="301.3889" y2="306.9444" />
+		<line fill="none" id="t2 p22" stroke="#E65100" stroke-width="2" x1="442.7738" x2="442.7738" y1="306.9444" y2="306.9444" />
+		<line fill="none" id="t2 p23" stroke="#E65100" stroke-width="2" x1="442.7738" x2="463.1050" y1="306.9444" y2="308.3333" />
+		<line fill="none" id="t2 p24" stroke="#E64D00" stroke-width="2" x1="463.1050" x2="463.1050" y1="308.3333" y2="308.3333" />
+		<line fill="none" id="t2 p25" stroke="#E64D00" stroke-width="2" x1="463.1050" x2="492.7382" y1="308.3333" y2="325.0000" />
+		<line fill="none" id="t2 p26" stroke="#E60000" stroke-width="2" x1="492.7382" x2="499.0055" y1="325.0000" y2="293.0556" />
+		<line fill="none" id="t2 p27" stroke="#E69500" stroke-width="2" x1="499.0055" x2="504.4388" y1="293.0556" y2="288.8889" />
+		<line fill="none" id="t2 p28" stroke="#E6A700" stroke-width="2" x1="504.4388" x2="515.1505" y1="288.8889" y2="268.0556" />
+		<line fill="none" id="t2 p29" stroke="#C6E600" stroke-width="2" x1="515.1505" x2="521.5756" y1="268.0556" y2="298.6111" />
+		<line fill="none" id="t2 p30" stroke="#E67A00" stroke-width="2" x1="521.5756" x2="521.5756" y1="298.6111" y2="298.6111" />
+		<line fill="none" id="t2 p31" stroke="#E67A00" stroke-width="2" x1="521.5756" x2="527.0536" y1="298.6111" y2="269.4444" />
+		<line fill="none" id="t2 p32" stroke="#CBE600" stroke-width="2" x1="527.0536" x2="534.4144" y1="269.4444" y2="238.8889" />
+		<line fill="none" id="t2 p33" stroke="#3FE600" stroke-width="2" x1="534.4144" x2="535.2684" y1="238.8889" y2="231.9444" />
+		<line fill="none" id="t2 p34" stroke="#1FE600" stroke-width="2" x1="535.2684" x2="544.5406" y1="231.9444" y2="268.0556" />
+		<line fill="none" id="t2 p35" stroke="#C6E600" stroke-width="2" x1="544.5406" x2="558.5060" y1="268.0556" y2="237.5000" />
+		<line fill="none" id="t2 p36" stroke="#3BE600" stroke-width="2" x1="558.5060" x2="558.5060" y1="237.5000" y2="237.5000" />
+		<line fill="none" id="t2 p37" stroke="#3BE600" stroke-width="2" x1="558.5060" x2="568.0734" y1="237.5000" y2="247.2222" />
+		<line fill="none" id="t2 p38" stroke="#67E600" stroke-width="2" x1="568.0734" x2="575.8220" y1="247.2222" y2="251.3889" />
+		<line fill="none" id="t2 p39" stroke="#79E600" stroke-width="2" x1="575.8220" x2="582.6299" y1="251.3889" y2="243.0556" />
+		<line fill="none" id="t2 p40" stroke="#51E600" stroke-width="2" x1="582.6299" x2="582.6299" y1="243.0556" y2="243.0556" />
+		<line fill="none" id="t2 p41" stroke="#51E600" stroke-width="2" x1="582.6299" x2="584.7513" y1="243.0556" y2="236.1111" />
+		<line fill="none" id="t2 p42" stroke="#32E600" stroke-width="2" x1="584.7513" x2="587.6790" y1="236.1111" y2="225.0000" />
+		<line fill="none" id="t2 p43" stroke="#00E600" stroke-width="2" x1="587.6790" x2="606.6815" y1="225.0000" y2="220.8333" />
+		<line fill="none" id="t2 p44" stroke="#00E612" stroke-width="2" x1="606.6815" x2="606.6815" y1="220.8333" y2="220.8333" />
+		<line fill="none" id="t2 p45" stroke="#00E612" stroke-width="2" x1="606.6815" x2="610.4484" y1="220.8333" y2="194.4444" />
+		<line fill="none" id="t2 p46" stroke="#00E68C" stroke-width="2" x1="610.4484" x2="614.2123" y1="194.4444" y2="184.7222" />
+		<line fill="none" id="t2 p47" stroke="#00E6B8" stroke-width="2" x1="614.2123" x2="614.2123" y1="184.7222" y2="184.7222" />
+		<line fill="none" id="t2 p48" stroke="#00E6B8" stroke-width="2" x1="614.2123" x2="614.7793" y1="184.7222" y2="188.8889" />
+		<line fill="none" id="t2 p49" stroke="#00E6A7" stroke-width="2" x1="614.7793" x2="615.8718" y1="188.8889" y2="195.8333" />
+		<line fill="none" id="t2 p50" stroke="#00E687" stroke-width="2" x1="615.8718" x2="618.3267" y1="195.8333" y2="219.4444" />
+		<line fill="none" id="t2 p51" stroke="#00E61B" stroke-width="2" x1="618.3267" x2="618.3267" y1="219.4444" y2="219.4444" />
+		<line fill="none" id="t2 p52" stroke="#00E61B" stroke-width="2" x1="618.3267" x2="622.0333" y1="219.4444" y2="209.7222" />
+		<line fill="none" id="t2 p53" stroke="#00E648" stroke-width="2" x1="622.0333" x2="622.0333" y1="209.7222" y2="209.7222" />
+		<line fill="none" id="t2 p54" stroke="#00E648" stroke-width="2" x1="622.0333" x2="624.2388" y1="209.7222" y2="213.8889" />
+		<line fill="none" id="t2 p55" stroke="#00E632" stroke-width="2" x1="624.2388" x2="625.0000" y1="213.8889" y2="211.1111" />
+	</g>	<text fill="#000000" font-family="Verdana" font-size="12" id="x-axis title" text-anchor="middle" x="350" y="397">Distance
+	</text>	<text fill="#000000" font-family="Verdana" font-size="12" id="y-axis title" text-anchor="middle" transform="translate(14,200) rotate(-90) translate(-14,-200)" x="14" y="200">Elevation
+	</text>
+	<g id="Legend" onmousedown="trackGroup(evt,'Legend',1)" onmousemove="moveGroup(evt,'Legend')" onmouseup="trackGroup(evt,'Legend',0)" transform="translate(0,0)" x="680" y="76">		<text fill="#E60000" font-family="Verdana" font-size="10" id="legend label 1" text-anchor="end" x="680" y="76">287.7
+		</text>		<text fill="#ABE600" font-family="Verdana" font-size="10" id="legend label 2" text-anchor="end" x="680" y="66">292.2
+		</text>		<text fill="#00E675" font-family="Verdana" font-size="10" id="legend label 3" text-anchor="end" x="680" y="56">296.7
+		</text>		<text fill="#003BE6" font-family="Verdana" font-size="10" id="legend label 4" text-anchor="end" x="680" y="46">301.2
+		</text>		<text fill="#E600E6" font-family="Verdana" font-size="10" id="legend label 5" text-anchor="end" x="680" y="36">305.7
+		</text>		<text fill="#000000" font-family="Verdana" font-size="10" id="legend header" onmouseout="highlight('Legend',0)" onmouseover="highlight('Legend',1)" text-anchor="end" x="680" y="24">Elevation (m)
+		</text>
+	</g>
+	<g id="Logo" onmousedown="trackGroup(evt,'Logo',1)" onmousemove="moveGroup(evt,'Logo')" onmouseout="highlight('Logo',0)" onmouseover="highlight('Logo',1)" onmouseup="trackGroup(evt,'Logo',0)" transform="translate(0,0)" x="697" y="200">
+		<rect fill="#FFFFFF" height="160" id="logo box" opacity="0.6" width="11" x="688" y="120" />
+		<a target="_blank" xlink:href="http://www.gpsvisualizer.com/">			<text fill="#000000" font-family="Verdana" font-size="9" id="logo_text" text-anchor="middle" transform="translate(697,200) rotate(-90) translate(-697,-200)" x="697" y="200">created by GPSVisualizer.com
+			</text>
+		</a>
+	</g>
+	<rect fill="none" height="399" id="image_boundary" opacity="0" stroke="#000000" stroke-width="1" width="699" x="0.5" y="0.5" />
+	<a id="modified_source_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/display/1374270827-10044-P-89.212.128.55-modified.svg" />
+	<a id="localized_jpeg_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/localize?localize_mode=rasterize_jpg&amp;local_input=/1374270827-10044-P-89.212.128.55-modified.svg" />
+	<a id="localized_png_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/localize?localize_mode=rasterize_png&amp;local_input=/1374270827-10044-P-89.212.128.55-modified.svg" />
+	<a id="localized_svg_link" target="_blank" xlink:href="http://www.gpsvisualizer.com/localize?localize_mode=embed&amp;local_input=/1374270827-10044-P-89.212.128.55-modified.svg" />	<script type="text/ecmascript"><![CDATA[
+	function saveModifiedSource() {
+		var okay_to_continue;
+		if (document.URL.substr(0,4) == 'http') {
+			okay_to_continue = confirm('After you click "OK" or "Yes" in this box, please wait a few moments while your updated SVG file is sent to the server.')
+		} else {
+			alert('Sorry.  For security reasons, you can only save modifications to a file that resides on gpsvisualizer.com.');
+			return;
+		}
+		if (SVGDoc.getElementById('modified_source_link text') != null) {
+			var theThingToDelete = SVGDoc.getElementById('modified_source_link text');
+			theThingToDelete.getParentNode().removeChild(theThingToDelete);
+		}
+		if (SVGDoc.getElementById('localized_jpeg_link text') != null) {
+			var theThingToDelete2 = SVGDoc.getElementById('localized_jpeg_link text');
+			theThingToDelete2.getParentNode().removeChild(theThingToDelete2);
+		}
+		if (SVGDoc.getElementById('localized_png_link text') != null) {
+			var theThingToDelete3 = SVGDoc.getElementById('localized_png_link text');
+			theThingToDelete3.getParentNode().removeChild(theThingToDelete3);
+		}
+		if (okay_to_continue) {
+			showSaver(0);
+			var theSource = printNode(document.rootElement);
+			showSaver(1);
+			postURL('http://www.gpsvisualizer.com/save_modified.cgi?/1374270827-10044-P-89.212.128.55.svg',theSource,postIsDone,"image/svg-xml");
+		}
+	}
+	function postIsDone() {
+		if (SVGDoc.getElementById('modified_source_link') != null) {
+			
+			var theExistingModifiedLink = SVGDoc.getElementById('modified_source_link');
+			var newModLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newModLinkLabel.setAttributeNS(null, 'id', 'modified_source_link text');
+			newModLinkLabel.setAttributeNS(null, 'x', 3); newModLinkLabel.setAttributeNS(null, 'y', 14);
+			newModLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newModLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newModLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newModLinkText = document.createTextNode('Retrieve modified SVG');
+			newModLinkLabel.appendChild(newModLinkText);
+			theExistingModifiedLink.appendChild(newModLinkLabel);
+
+			var theExistingJPEGLink = SVGDoc.getElementById('localized_jpeg_link');
+			var newJPEGLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newJPEGLinkLabel.setAttributeNS(null, 'id', 'localized_jpeg_link text');
+			newJPEGLinkLabel.setAttributeNS(null, 'x', 3); newJPEGLinkLabel.setAttributeNS(null, 'y', 28);
+			newJPEGLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newJPEGLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newJPEGLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newJPEGLinkText = document.createTextNode('Convert modified SVG to JPEG');
+			newJPEGLinkLabel.appendChild(newJPEGLinkText);
+			theExistingJPEGLink.appendChild(newJPEGLinkLabel);
+
+			var theExistingPNGLink = SVGDoc.getElementById('localized_png_link');
+			var newPNGLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newPNGLinkLabel.setAttributeNS(null, 'id', 'localized_png_link text');
+			newPNGLinkLabel.setAttributeNS(null, 'x', 3); newPNGLinkLabel.setAttributeNS(null, 'y', 42);
+			newPNGLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newPNGLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newPNGLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newPNGLinkText = document.createTextNode('Convert modified SVG to PNG');
+			newPNGLinkLabel.appendChild(newPNGLinkText);
+			theExistingPNGLink.appendChild(newPNGLinkLabel);
+
+			var theExistingSVGLink = SVGDoc.getElementById('localized_svg_link');
+			var newSVGLinkLabel = SVGDoc.createElementNS(svgns,'text');
+			newSVGLinkLabel.setAttributeNS(null, 'id', 'localized_svg_link text');
+			newSVGLinkLabel.setAttributeNS(null, 'x', 3); newSVGLinkLabel.setAttributeNS(null, 'y', 56);
+			newSVGLinkLabel.setAttributeNS(null, 'fill', '#CC0000'); newSVGLinkLabel.setAttributeNS(null, 'font-family', 'Verdana');  newSVGLinkLabel.setAttributeNS(null, 'font-size', '12');
+			var newSVGLinkText = document.createTextNode('Localize modified SVG (embed background)');
+			newSVGLinkLabel.appendChild(newSVGLinkText);
+			theExistingSVGLink.appendChild(newSVGLinkLabel);
+
+			alert('The modified data has been recorded.  Click "Retrieve modified SVG" to open your new file, or click "Convert modified SVG to JPEG/PNG" or "Localize modified SVG" to create a flat graphic or simplified SVG of your drawing.')
+		}
+	}
+	function saverMouseDown(evt,id) {
+		var theSaver = SVGDoc.getElementById('Saver');
+		if (theSaver.getAttributeNS(null, 'opacity') == 0) { return; }
+		tracking = 1;
+		findGroupClickOffset(evt,id);
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		global_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		global_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+	}
+	function saverMouseUp(evt,id) {
+		var theSaver = SVGDoc.getElementById('Saver');
+		if (theSaver.getAttributeNS(null, 'opacity') == 0) { return; }
+		// Any time the mouse is lifted off the saver, clear the blue highlights
+		var theGroupTags = SVGDoc.getElementsByTagName('g');
+		for(g=0; g < theGroupTags.length; g++){
+			theGroupTags.item(g).setAttributeNS(null, 'stroke','none');
+			theGroupTags.item(g).setAttributeNS(null, 'stroke-width',0);
+		}
+		tracking = 0;
+		var scale = SVGRoot.getCurrentScale();
+		var pan = SVGRoot.getCurrentTranslate();
+		var current_mouse_x = (evt.getClientX())/scale + (( 0.0 - pan.x ) / scale);
+		var current_mouse_y = (evt.getClientY())/scale + (( 0.0 - pan.y ) / scale);
+		if (current_mouse_x == global_mouse_x && current_mouse_y == global_mouse_y) {
+			saveModifiedSource();
+		}
+	}
+	]]>
+	</script>
+	<g id="Saver" onmousedown="saverMouseDown(evt,'Saver')" onmousemove="moveGroup(evt,'Saver')" onmouseup="saverMouseUp(evt,'Saver')" opacity="0" transform="translate(682,382)" x="682" y="382">
+		<rect fill="#CC0000" height="16" id="saver 1" rx="1.5" ry="1.5" width="16" x="0" y="0" />
+		<rect fill="#FFFFFF" height="8.5" id="saver 2" width="12" x="2" y="0.5" />
+		<rect fill="#999999" height="1" id="saver 3a" width="11" x="2.5" y="2" />
+		<rect fill="#999999" height="1" id="saver 3b" width="11" x="2.5" y="4" />
+		<rect fill="#999999" height="1" id="saver 3c" width="11" x="2.5" y="6" />
+		<rect fill="#CCCCCC" height="5.5" id="saver 4" width="8" x="4" y="10.5" />
+		<rect fill="#CC0000" height="4.5" id="saver 5" width="2" x="5.5" y="11" />
+	</g><!-- debugging stuff:
+ --><!-- key = 1374270827-10044
+ --><!-- min. altitude = 287.7
+ --><!-- max. altitude = 305.7
+ --><!-- colorize min = 287.7
+ --><!-- colorize max = 305.7
+ --><!-- colorize range = 18
+ --><!-- upper left (data) = 46.04766,14.47411
+ --><!-- lower right (data) = 46.03344,14.51755
+ --><!-- upper left (drawing) = 46.04766,14.47411
+ --><!-- lower right (drawing) = 46.03344,14.51755
+ --><!-- center = 46.04055,14.49583
+ --><!-- width,height (pixels) = 700,400
+ --><!-- width,height (degrees) = 0.0434400000000004,0.0142199999999946
+ --><!-- scale = 11218, resolution = 3.957 m/pixel
+ --><!-- map = 
+ --><!-- backgrounds = http://www.gpsvisualizer.com/backgrounds?max_dimension=700&margin=0&mw=14.47411&me=14.51755&ms=46.03344&mn=46.04766&submitted=1
+ --><!-- e-mail = 
+ --><!-- 
+	Generated using the Perl SVG Module V2.49
+	by Ronan Oger
+	Info: http://www.roitsystems.com/
+ -->
+</svg>
