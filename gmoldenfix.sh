@@ -1,7 +1,15 @@
+#!/bin/bash
+
+# MR, Oct 2013
+# This is a quick fix for making gmolden5.0.6.macosX work on a Mac.
+
+# The script switches between i386 and x86_64 libraries in /usr/local/lib
+# i386 libraries are needed for gmolden5.0.6.macosX, while x86_64 are for
+# the previous version.
+
 cd /usr/local/lib/
 
 LIBS=( libgfortran.3.dylib libquadmath.0.dylib )
-
 
 for ITEM in ${LIBS[@]};
     do
