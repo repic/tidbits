@@ -1,3 +1,3 @@
 tidbits
 =======
-Hello world! I've made a change.
+Random bits of code. Sometimes useful.
