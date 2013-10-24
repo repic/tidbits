@@ -1,4 +1,4 @@
-#!/usr/bin/awk -f 
+#!/usr/bin/env awk -f
 
 # MR, Oct 2013
 # Script for computing an average and standard deviation of the sample
@@ -6,21 +6,17 @@
 
 # Empty lines and lines that contain alphabetic characters are ignored
 # completely. Lines that do not have the same number of columns as the
-# first line are also ignored from the calculations
+# first line are also ignored from the calculations.
 
 
 {
-    # Get the number of columns in the first line (complete line)
+    # Get the number of columns in the first line
     if ( NR == 1 ) {
         nf = NF
     }
 
     # Skip lines matching the regex and incomplete lines
-    if ( /[[:alpha:]]|^$/ || NF != nf) {
-    }
-
-    # Read the data
-    else {
+    if ( ! ( /[[:alpha:]]|^$/ || NF != nf ) ) {
         for (i = 1; i <= nf; i++) {
             sum[i] += $i        # column sum
             sumsq[i]+= $i * $i  # column sum of squares
