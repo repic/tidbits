@@ -2,6 +2,7 @@
 
 # MR, Oct 2013
 # This is a quick fix for making gmolden5.0.6.macosX work on a Mac.
+# Alleviates the "mach-o but wrong architecture" problem.
 
 # The script switches between i386 and x86_64 libraries in /usr/local/lib
 # i386 libraries are needed for gmolden5.0.6.macosX, while x86_64 are for
